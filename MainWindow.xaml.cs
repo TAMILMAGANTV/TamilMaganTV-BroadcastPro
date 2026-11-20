@@ -1,77 +1,65 @@
+
+using LibVLCSharp.Shared;
 using Microsoft.Win32;
+using System;
 using System.Data;
 using System.IO;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
 
 namespace TamilMaganBroadcastPro
 {
     public partial class MainWindow : Window
     {
-        private readonly DataTable playlist = new();
-        private DataGrid? playlistGrid;
+        private readonly DataTable _playlist = new DataTable();
+
+        private LibVLC? _libVlc;
+        private MediaPlayer? _mediaPlayer;
+        private Media? _currentMedia;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            playlist.Columns.Add("NO");
-            playlist.Columns.Add("FILE NAME");
-            playlist.Columns.Add("DURATION");
-            playlist.Columns.Add("STATUS");
+            _playlist.Columns.Add("NO", typeof(int));
+            _playlist.Columns.Add("FILE NAME", typeof(string));
+            _playlist.Columns.Add("DURATION", typeof(string));
+            _playlist.Columns.Add("STATUS", typeof(string));
+            _playlist.Columns.Add("FILE PATH", typeof(string));
 
-            playlistGrid = FindVisualChild<DataGrid>(this);
-
-            if (playlistGrid != null)
-            {
-                playlistGrid.AutoGenerateColumns = true;
-                playlistGrid.ItemsSource = playlist.DefaultView;
-            }
-
-            ConnectButtons(this);
+            PlaylistGrid.ItemsSource = _playlist.DefaultView;
         }
 
-        private void ConnectButtons(DependencyObject parent)
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            int count = VisualTreeHelper.GetChildrenCount(parent);
-
-            for (int i = 0; i < count; i++)
+            try
             {
-                var child = VisualTreeHelper.GetChild(parent, i);
+                Core.Initialize();
 
-                if (child is Button button)
-                {
-                    switch (button.Content?.ToString())
-                    {
-                        case "ADD FILE":
-                            button.Click += AddFile_Click;
-                            break;
+                _libVlc = new LibVLC();
+                _mediaPlayer = new MediaPlayer(_libVlc);
 
-                        case "REMOVE":
-                            button.Click += Remove_Click;
-                            break;
+                PreviewVideoView.MediaPlayer = _mediaPlayer;
 
-                        case "PLAY":
-                            button.Click += Play_Click;
-                            break;
+                StatusText.Text = "VIDEO ENGINE READY";
+            }
+            catch (Exception ex)
+            {
+                StatusText.Text = "VIDEO ENGINE ERROR";
 
-                        case "STOP":
-                            button.Click += Stop_Click;
-                            break;
-                    }
-                }
-
-                ConnectButtons(child);
+                MessageBox.Show(
+                    "வீடியோ Engine தொடங்க முடியவில்லை.\n\n" + ex.Message,
+                    "TAMIL MAGAN TV BROADCAST PRO",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 
         private void AddFile_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFileDialog
+            OpenFileDialog dialog = new OpenFileDialog
             {
                 Title = "Select Video Files",
-                Filter = "Video Files|*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.ts|All Files|*.*",
+                Filter = "Video Files|*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.ts;*.m4v|All Files|*.*",
                 Multiselect = true
             };
 
@@ -79,63 +67,140 @@ namespace TamilMaganBroadcastPro
             {
                 foreach (string file in dialog.FileNames)
                 {
-                    playlist.Rows.Add(
-                        playlist.Rows.Count + 1,
+                    _playlist.Rows.Add(
+                        _playlist.Rows.Count + 1,
                         Path.GetFileName(file),
                         "--:--",
-                        "READY"
+                        "READY",
+                        file
                     );
                 }
+
+                StatusText.Text =
+                    dialog.FileNames.Length + " FILE(S) ADDED";
             }
         }
 
         private void Remove_Click(object sender, RoutedEventArgs e)
         {
-            if (playlistGrid?.SelectedItem is DataRowView selected)
+            if (PlaylistGrid.SelectedItem is DataRowView selected)
             {
                 selected.Row.Delete();
 
-                for (int i = 0; i < playlist.Rows.Count; i++)
-                    playlist.Rows[i]["NO"] = i + 1;
+                RenumberPlaylist();
+
+                StatusText.Text = "FILE REMOVED";
             }
             else
             {
-                MessageBox.Show("Please select a playlist item.");
+                MessageBox.Show(
+                    "முதலில் Playlist-ல் ஒரு வீடியோவைத் தேர்வு செய்யுங்கள்.");
             }
         }
 
         private void Play_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(
-                "Playlist is ready. Video playback will be added in the next stage.",
-                "TAMIL MAGAN TV BROADCAST PRO"
-            );
+            if (_libVlc == null || _mediaPlayer == null)
+            {
+                MessageBox.Show(
+                    "Video Engine இன்னும் தயாராகவில்லை. மீண்டும் முயற்சிக்கவும்.");
+                return;
+            }
+
+            DataRowView? selected =
+                PlaylistGrid.SelectedItem as DataRowView;
+
+            if (selected == null && _playlist.DefaultView.Count > 0)
+            {
+                PlaylistGrid.SelectedIndex = 0;
+                selected = PlaylistGrid.SelectedItem as DataRowView;
+            }
+
+            if (selected == null)
+            {
+                MessageBox.Show(
+                    "முதலில் ADD FILE மூலம் வீடியோவைச் சேர்க்கவும்.");
+                return;
+            }
+
+            string filePath =
+                Convert.ToString(selected["FILE PATH"]) ?? "";
+
+            if (!File.Exists(filePath))
+            {
+                MessageBox.Show("வீடியோ கோப்பைக் கண்டுபிடிக்க முடியவில்லை.");
+                return;
+            }
+
+            try
+            {
+                _mediaPlayer.Stop();
+
+                _currentMedia?.Dispose();
+
+                _currentMedia = new Media(
+                    _libVlc,
+                    new Uri(filePath)
+                );
+
+                _mediaPlayer.Play(_currentMedia);
+
+                foreach (DataRow row in _playlist.Rows)
+                {
+                    row["STATUS"] = "READY";
+                }
+
+                selected["STATUS"] = "PLAYING";
+
+                StatusText.Text =
+                    "PLAYING: " + Path.GetFileName(filePath);
+            }
+            catch (Exception ex)
+            {
+                StatusText.Text = "PLAYBACK ERROR";
+
+                MessageBox.Show(
+                    "வீடியோவை இயக்க முடியவில்லை.\n\n" + ex.Message);
+            }
         }
 
         private void Stop_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Playback stop control is ready for integration.");
-        }
-
-        private static T? FindVisualChild<T>(DependencyObject parent)
-            where T : DependencyObject
-        {
-            int count = VisualTreeHelper.GetChildrenCount(parent);
-
-            for (int i = 0; i < count; i++)
+            if (_mediaPlayer != null)
             {
-                var child = VisualTreeHelper.GetChild(parent, i);
-
-                if (child is T result)
-                    return result;
-
-                var nested = FindVisualChild<T>(child);
-
-                if (nested != null)
-                    return nested;
+                _mediaPlayer.Stop();
             }
 
-            return null;
+            _currentMedia?.Dispose();
+            _currentMedia = null;
+
+            foreach (DataRow row in _playlist.Rows)
+            {
+                row["STATUS"] = "READY";
+            }
+
+            StatusText.Text = "PLAYBACK STOPPED";
+        }
+
+        private void RenumberPlaylist()
+        {
+            for (int i = 0; i < _playlist.Rows.Count; i++)
+            {
+                _playlist.Rows[i]["NO"] = i + 1;
+            }
+        }
+
+        private void Window_Closing(
+            object? sender,
+            System.ComponentModel.CancelEventArgs e)
+        {
+            _mediaPlayer?.Stop();
+
+            PreviewVideoView.MediaPlayer = null;
+
+            _currentMedia?.Dispose();
+            _mediaPlayer?.Dispose();
+            _libVlc?.Dispose();
         }
     }
 }
