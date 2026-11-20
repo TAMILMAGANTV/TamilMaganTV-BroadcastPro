@@ -1,92 +1,141 @@
 using Microsoft.Win32;
-using System.Collections.ObjectModel;
+using System.Data;
 using System.IO;
 using System.Windows;
-using System.Windows.Threading;
-using TamilMaganBroadcastPro.Models;
+using System.Windows.Controls;
+using System.Windows.Media;
 
-namespace TamilMaganBroadcastPro;
-
-public partial class MainWindow : Window
+namespace TamilMaganBroadcastPro
 {
-    public ObservableCollection<PlaylistItem> Playlist { get; } = new();
-    private readonly DispatcherTimer _clockTimer = new() { Interval = TimeSpan.FromSeconds(1) };
-
-    public MainWindow()
+    public partial class MainWindow : Window
     {
-        InitializeComponent();
-        DataContext = this;
-        _clockTimer.Tick += (_, _) => ClockText.Text = DateTime.Now.ToString("HH:mm:ss");
-        _clockTimer.Start();
-    }
+        private readonly DataTable playlist = new();
+        private DataGrid? playlistGrid;
 
-    private void AddMedia_Click(object sender, RoutedEventArgs e)
-    {
-        var dialog = new OpenFileDialog
+        public MainWindow()
         {
-            Title = "Add media to playlist",
-            Filter = "Media files|*.mp4;*.mkv;*.mov;*.avi;*.wmv;*.mp3;*.wav;*.m4v;*.ts|All files|*.*",
-            Multiselect = true
-        };
+            InitializeComponent();
 
-        if (dialog.ShowDialog() != true) return;
+            playlist.Columns.Add("NO");
+            playlist.Columns.Add("FILE NAME");
+            playlist.Columns.Add("DURATION");
+            playlist.Columns.Add("STATUS");
 
-        foreach (var path in dialog.FileNames)
-        {
-            Playlist.Add(new PlaylistItem
+            playlistGrid = FindVisualChild<DataGrid>(this);
+
+            if (playlistGrid != null)
             {
-                FileName = Path.GetFileName(path),
-                FullPath = path,
-                FileType = Path.GetExtension(path).TrimStart('.').ToUpperInvariant(),
-                Status = "Ready"
-            });
+                playlistGrid.AutoGenerateColumns = true;
+                playlistGrid.ItemsSource = playlist.DefaultView;
+            }
+
+            ConnectButtons(this);
         }
-        StatusText.Text = $"{dialog.FileNames.Length} file(s) added. Total: {Playlist.Count}";
-    }
 
-    private void RemoveMedia_Click(object sender, RoutedEventArgs e)
-    {
-        if (PlaylistGrid.SelectedItem is not PlaylistItem item) return;
-        Playlist.Remove(item);
-        StatusText.Text = "Selected item removed from playlist.";
-    }
-
-    private void MoveUp_Click(object sender, RoutedEventArgs e) => MoveSelected(-1);
-    private void MoveDown_Click(object sender, RoutedEventArgs e) => MoveSelected(1);
-
-    private void MoveSelected(int offset)
-    {
-        if (PlaylistGrid.SelectedItem is not PlaylistItem item) return;
-        int index = Playlist.IndexOf(item);
-        int target = index + offset;
-        if (target < 0 || target >= Playlist.Count) return;
-        Playlist.Move(index, target);
-        PlaylistGrid.SelectedItem = item;
-        PlaylistGrid.ScrollIntoView(item);
-    }
-
-    private void Play_Click(object sender, RoutedEventArgs e)
-    {
-        if (PlaylistGrid.SelectedItem is not PlaylistItem item)
+        private void ConnectButtons(DependencyObject parent)
         {
-            StatusText.Text = "Select a playlist item first.";
-            return;
+            int count = VisualTreeHelper.GetChildrenCount(parent);
+
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+
+                if (child is Button button)
+                {
+                    switch (button.Content?.ToString())
+                    {
+                        case "ADD FILE":
+                            button.Click += AddFile_Click;
+                            break;
+
+                        case "REMOVE":
+                            button.Click += Remove_Click;
+                            break;
+
+                        case "PLAY":
+                            button.Click += Play_Click;
+                            break;
+
+                        case "STOP":
+                            button.Click += Stop_Click;
+                            break;
+                    }
+                }
+
+                ConnectButtons(child);
+            }
         }
-        StatusText.Text = $"Selected for playback: {item.FileName}. Playback engine is the next development milestone.";
-    }
 
-    private void Pause_Click(object sender, RoutedEventArgs e)
-        => StatusText.Text = "Pause control will be connected to the playback engine in Phase 2.";
+        private void AddFile_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Select Video Files",
+                Filter = "Video Files|*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.ts|All Files|*.*",
+                Multiselect = true
+            };
 
-    private void Stop_Click(object sender, RoutedEventArgs e)
-        => StatusText.Text = "Stop control will be connected to the playback engine in Phase 2.";
+            if (dialog.ShowDialog() == true)
+            {
+                foreach (string file in dialog.FileNames)
+                {
+                    playlist.Rows.Add(
+                        playlist.Rows.Count + 1,
+                        Path.GetFileName(file),
+                        "--:--",
+                        "READY"
+                    );
+                }
+            }
+        }
 
-    private void PlaylistTab_Click(object sender, RoutedEventArgs e)
-        => StatusText.Text = "Playlist workspace selected.";
+        private void Remove_Click(object sender, RoutedEventArgs e)
+        {
+            if (playlistGrid?.SelectedItem is DataRowView selected)
+            {
+                selected.Row.Delete();
 
-    private void PlaylistGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
-    {
-        if (PlaylistGrid.SelectedItem is PlaylistItem item)
-            StatusText.Text = $"Selected: {item.FileName}";
+                for (int i = 0; i < playlist.Rows.Count; i++)
+                    playlist.Rows[i]["NO"] = i + 1;
+            }
+            else
+            {
+                MessageBox.Show("Please select a playlist item.");
+            }
+        }
+
+        private void Play_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show(
+                "Playlist is ready. Video playback will be added in the next stage.",
+                "TAMIL MAGAN TV BROADCAST PRO"
+            );
+        }
+
+        private void Stop_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Playback stop control is ready for integration.");
+        }
+
+        private static T? FindVisualChild<T>(DependencyObject parent)
+            where T : DependencyObject
+        {
+            int count = VisualTreeHelper.GetChildrenCount(parent);
+
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+
+                if (child is T result)
+                    return result;
+
+                var nested = FindVisualChild<T>(child);
+
+                if (nested != null)
+                    return nested;
+            }
+
+            return null;
+        }
     }
 }
