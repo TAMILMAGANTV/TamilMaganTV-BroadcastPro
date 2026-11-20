@@ -1,0 +1,152 @@
+<Window x:Class="TamilMaganBroadcastPro.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="TAMIL MAGAN TV - BROADCAST PRO" Width="1500" Height="900"
+        MinWidth="1100" MinHeight="700" WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Bg}" Foreground="{StaticResource TextMain}">
+    <Grid Margin="6">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="176"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header / identity -->
+        <Grid Grid.Row="0" Margin="2,0,2,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="190"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="190"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="TM" Foreground="{StaticResource Accent}" FontSize="27" FontWeight="Bold"/>
+                <TextBlock Text="TAMIL MAGAN TV" FontSize="13" FontWeight="Bold"/>
+                <TextBlock Text="BROADCAST PRO  •  STUDIO" Foreground="{StaticResource TextDim}" FontSize="9"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="ON AIR" Foreground="#F04B63" FontWeight="Bold" Margin="0,0,18,0"/>
+                <TextBlock Text="SYSTEM READY  |  PLAYLIST IDLE" Foreground="{StaticResource TextDim}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                <TextBlock x:Name="ClockText" Text="00:00:00" FontSize="19" FontWeight="Bold" HorizontalAlignment="Right"/>
+                <TextBlock Text="LOCAL STATION CLOCK" FontSize="9" Foreground="{StaticResource TextDim}"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Multiview row: four preview tiles + program tile -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.15*"/>
+                <ColumnDefinition Width="1.15*"/>
+                <ColumnDefinition Width="1.15*"/>
+                <ColumnDefinition Width="1.15*"/>
+                <ColumnDefinition Width="1.45*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource PreviewBorder}">
+                <Grid><TextBlock Text="PREVIEW 1" Foreground="#777" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <TextBlock Text="INPUT 01" Foreground="{StaticResource Accent}" FontSize="9" VerticalAlignment="Bottom" Margin="6"/></Grid>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource PreviewBorder}">
+                <Grid><TextBlock Text="PREVIEW 2" Foreground="#777" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <TextBlock Text="INPUT 02" Foreground="{StaticResource Accent}" FontSize="9" VerticalAlignment="Bottom" Margin="6"/></Grid>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource PreviewBorder}">
+                <Grid><TextBlock Text="PREVIEW 3" Foreground="#777" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <TextBlock Text="INPUT 03" Foreground="{StaticResource Accent}" FontSize="9" VerticalAlignment="Bottom" Margin="6"/></Grid>
+            </Border>
+            <Border Grid.Column="3" Style="{StaticResource PreviewBorder}">
+                <Grid><TextBlock Text="PREVIEW 4" Foreground="#777" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <TextBlock Text="INPUT 04" Foreground="{StaticResource Accent}" FontSize="9" VerticalAlignment="Bottom" Margin="6"/></Grid>
+            </Border>
+            <Border Grid.Column="4" BorderBrush="#8C48A8" BorderThickness="2" Background="#202020" Margin="3" CornerRadius="3">
+                <Grid><TextBlock Text="PROGRAM OUTPUT" Foreground="#777" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <TextBlock Text="PROGRAM" Foreground="#E9B6FF" FontSize="9" VerticalAlignment="Bottom" Margin="6"/></Grid>
+            </Border>
+        </Grid>
+
+        <!-- Main tabs -->
+        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+            <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+                <Button Content="PLAY LIST" Click="PlaylistTab_Click"/>
+                <Button Content="INSTANT"/>
+                <Button Content="AD ENTRY"/>
+                <Button Content="CG"/>
+                <Button Content="SETTINGS"/>
+                <Button Content="LIVE"/>
+                <Button Content="UDP+"/>
+                <Button Content="KIMP"/>
+                <Button Content="WEB URL"/>
+                <Button Content="EQUALIZER"/>
+                <Button Content="NEWS"/>
+                <Button Content="E-CHORUS"/>
+                <Button Content="TITLE CG"/>
+                <Button Content="ANALOG CLOCK"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Playlist + side controls -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="150"/>
+            </Grid.ColumnDefinitions>
+            <DataGrid x:Name="PlaylistGrid" Grid.Column="0" ItemsSource="{Binding Playlist}"
+                      AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                      SelectionMode="Single" Background="#050505" Foreground="#EAEAEA"
+                      RowBackground="#101010" AlternatingRowBackground="#181018"
+                      GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#454045"
+                      BorderBrush="#454045" HeadersVisibility="Column"
+                      SelectionChanged="PlaylistGrid_SelectionChanged">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#29252B"/>
+                        <Setter Property="Foreground" Value="#F1DDF8"/>
+                        <Setter Property="Padding" Value="8,7"/>
+                        <Setter Property="BorderBrush" Value="#6B5A70"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="S.NO" Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Header}" Width="55"/>
+                    <DataGridTextColumn Header="FILE NAME" Binding="{Binding FileName}" Width="2*"/>
+                    <DataGridTextColumn Header="START" Binding="{Binding Status}" Width="100"/>
+                    <DataGridTextColumn Header="END" Binding="{Binding Duration}" Width="100"/>
+                    <DataGridTextColumn Header="FILE TYPE" Binding="{Binding FileType}" Width="100"/>
+                    <DataGridTextColumn Header="FILE PATH" Binding="{Binding FullPath}" Width="3*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <Border Grid.Column="1" Background="#111" BorderBrush="#49324F" BorderThickness="1" Margin="5,0,0,0" Padding="7">
+                <StackPanel>
+                    <TextBlock Text="OUTPUT CONTROL" Foreground="{StaticResource Accent}" FontWeight="Bold" Margin="0,0,0,8"/>
+                    <CheckBox x:Name="LogoToggle" Content="Logo" IsChecked="True" Margin="2,5" Foreground="White"/>
+                    <CheckBox Content="CG1" Margin="2,5" Foreground="White"/>
+                    <CheckBox Content="CG2" Margin="2,5" Foreground="White"/>
+                    <CheckBox Content="Ticker" Margin="2,5" Foreground="White"/>
+                    <CheckBox Content="Clock" Margin="2,5" Foreground="White"/>
+                    <CheckBox Content="Audio" IsChecked="True" Margin="2,5" Foreground="White"/>
+                    <Separator Margin="0,8"/>
+                    <Button Content="SAVE SETTINGS"/>
+                    <TextBlock Text="OUTPUT: STANDBY" Foreground="#B8E7B8" FontSize="10" Margin="3,8"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Transport and playlist actions -->
+        <DockPanel Grid.Row="4" Margin="0,6,0,0">
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                <Button Content="＋ ADD MEDIA" Click="AddMedia_Click"/>
+                <Button Content="REMOVE" Click="RemoveMedia_Click"/>
+                <Button Content="MOVE ↑" Click="MoveUp_Click"/>
+                <Button Content="MOVE ↓" Click="MoveDown_Click"/>
+                <Button Content="▶ PLAY" Click="Play_Click"/>
+                <Button Content="Ⅱ PAUSE" Click="Pause_Click"/>
+                <Button Content="■ STOP" Click="Stop_Click"/>
+            </StackPanel>
+            <TextBlock x:Name="StatusText" Text="Ready — add video files to begin."
+                       Foreground="{StaticResource TextDim}" VerticalAlignment="Center"
+                       HorizontalAlignment="Right"/>
+        </DockPanel>
+    </Grid>
+</Window>
